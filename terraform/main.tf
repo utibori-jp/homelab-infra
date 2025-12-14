@@ -1,12 +1,37 @@
+
+# --- Master Node ---
 resource "proxmox_vm_qemu" "k8s_master" {
   name        = "k8s-master"
   target_node = "pve"
-  clone       = "ubuntu-2204-cloudinit-template"
-  cores       = 2
-  memory      = 4096
 
-  ipconfig = "ip=192.168.1.10/24, gw=192.168.1.1"
-  sshkeys  = file("~/.ssh/id_rsa.pub")
+  # VM
+  clone  = "k8s-base-template"
+  cores  = 2
+  memory = 4096
+
+  # Storage
+  scsihw   = "virtio-scsi-pci"
+  bootdisk = "scsi0"
+
+  disk {
+    slot    = 0
+    size    = "32G"
+    type    = "scsi"
+    storage = "local-lvm"
+  }
+
+  # Network
+  network {
+    model  = "virtio"
+    bridge = "vmbr0"
+  }
+
+  os_type = "cloud-init"
+  ciuser  = "ubuntu"
+
+  ipconfig0 = "ip=192.168.100.10/24,gw=192.168.100.1"
+
+  sshkeys = file("~/.ssh/id_homelab.pub")
 }
 
 resource "proxmox_vm_qemu" "k3s_workers" {
