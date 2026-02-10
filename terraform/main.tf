@@ -1,75 +1,30 @@
-
-# --- Master Node ---
-resource "proxmox_vm_qemu" "k8s_master" {
-  name        = "k8s-master"
-  target_node = "pve"
-
-  # VM
-  clone  = "k8s-base-template"
-  cores  = 2
-  memory = 4096
-
-  # Storage
-  scsihw   = "virtio-scsi-pci"
-  bootdisk = "scsi0"
-
-  disk {
-    slot    = 0
-    size    = "32G"
-    type    = "scsi"
-    storage = "local-lvm"
-  }
-
-  # Network
-  network {
-    model  = "virtio"
-    bridge = "vmbr0"
-  }
-
-  os_type = "cloud-init"
-  ciuser  = "ubuntu"
-
-  ipconfig0 = "ip=192.168.100.10/24,gw=192.168.100.1"
-
-  sshkeys = file("~/.ssh/id_homelab.pub")
+# ------------------------------------------------------------------------------
+# Network Module
+# ------------------------------------------------------------------------------
+module "network" {
+  source = "./modules/network"
 }
 
-resource "proxmox_vm_qemu" "k3s_workers" {
-  count = 2
+# ------------------------------------------------------------------------------
+# Kubernetes Nodes (Master & Workers)
+# ------------------------------------------------------------------------------
+module "k8s-nodes" {
+  source = "./modules/k8s_nodes"
 
-  name = "k3s-worker-0${count.index + 1}"
+  # --- Dependencies ---
+  network_bridge = module.network.vnet_id
+  ssh_public_key = var.ssh_public_key
 
-  target_node = "pve"
+  # --- Compute Resources ---
+  cpu_cores   = 4
+  memory_size = 6144
+  disk_size   = 64
 
-  clone = "k8s-base-template"
+  # --- Cluster Scaling ---
+  node_count   = var.k8s_node_count
+  vm_id_start  = 200
+  ip_start_num = 11
 
-  # 基本設定
-  cores    = 2
-  sockets  = 1
-  memory   = 4096
-  scsihw   = "virtio-scsi-pci"
-  bootdisk = "scsi0"
-
-  disk {
-    slot    = 0
-    size    = "32G"
-    type    = "scsi"
-    storage = "local-lvm"
-  }
-
-  network {
-    model  = "virtio"
-    bridge = "vmbr0"
-  }
-
-  os_type = "cloud-init"
-
-  sshkeys = <<EOF
-  // TODO: set sshkeys
-  EOF
-
-  ciuser     = "ubuntu"
-  cipassword = "password"
-
-  ipconfig0 = "ip=192.168.0.2${count.index + 1}/24,gw=192.168.0.1"
+  # --- Naming ---
+  name_prefix = "home-lab"
 }
