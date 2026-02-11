@@ -1,0 +1,18 @@
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: loadbalancer-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 10.10.0.224/27
+
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: l2-config
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - loadbalancer-pool
