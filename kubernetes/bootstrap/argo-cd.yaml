@@ -9,7 +9,7 @@ spec:
     # Internal DNS for the local cluster where Argo CD is running
     repoURL: https://github.com//utibori-jp/homelab-infra.git
     targetRevision: main
-    path: system/argo-cd
+    path: kubernetes/system/argo-cd
     helm:
       valueFiles:
         - values.yaml
