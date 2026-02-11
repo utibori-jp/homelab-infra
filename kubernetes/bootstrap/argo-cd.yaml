@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-cd
+  namespace: argocd
+spec:
+  project: default
+  source:
+    # Internal DNS for the local cluster where Argo CD is running
+    repoURL: https://github.com//utibori-jp/homelab-infra.git
+    targetRevision: main
+    path: system/argo-cd
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      # GitOps strict mode: Git is the single source of truth
+      prune: true # Delete resources if they are removed from Gti
+      selfHeal: true # Revert any manual changes made via kubectl
