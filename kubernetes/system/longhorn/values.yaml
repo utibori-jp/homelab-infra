@@ -1,0 +1,6 @@
+longhorn:
+  service:
+    ui:
+      type: LoadBalancer
+  persistence:
+    defaultClassReplicaCount: 2 

@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: longhorn
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com//utibori-jp/homelab-infra.git
+    targetRevision: main
+    path: kubernetes/system/longhorn
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    # Longhorn components will be isolated in this dedicated namespace
+    namespace: longhorn-system
+  syncPolicy:
+    automated:
+      # GitOps strict mode: Git is the single source of truth
+      prune: true # Delete resources if they are removed from Gti
+      selfHeal: true # Revert any manual changes made via kubectl
+    syncOptions:
+      # Instructs Argo CD to create the destination namespace if it does not already exist
+      - CreateNamespace=true
