@@ -4,3 +4,5 @@ longhorn:
       type: LoadBalancer
   persistence:
     defaultClassReplicaCount: 2 
+  preUpgradeChecker:
+    jobEnabled: false
