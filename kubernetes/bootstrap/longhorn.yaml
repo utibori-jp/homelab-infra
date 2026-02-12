@@ -24,3 +24,11 @@ spec:
     syncOptions:
       # Instructs Argo CD to create the destination namespace if it does not already exist
       - CreateNamespace=true
+  # Ignore `nodePort` as it is dynamically assigned by Kubernetes:
+  # This prevents the application from remaining in "OutOfSync" state.
+  ignoreDifferences:
+    - group: ""
+      kind: Service
+      name: longhorn-frontend
+      jsonPointers:
+        - /spec/ports/0/nodePort    
