@@ -1,0 +1,29 @@
+# Argo CD Application definition for Tailscale Operator.
+# This manifest bootstraps the Tailscale operator in the "tailscale" namespace.
+# Note: You must configure OAuth credentials in kubernetes/system/tailscale/values.yaml
+# before the operator can successfully authenticate with your tailnet.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tailscale-operator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/utibori-jp/homelab-infra.git
+    targetRevision: main
+    path: kubernetes/system/tailscale
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    # The Tailscale operator will be installed in its own namespace.
+    namespace: tailscale
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # Automatically create the namespace if it doesn't exist.
+      - CreateNamespace=true

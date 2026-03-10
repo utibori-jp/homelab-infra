@@ -1,0 +1,9 @@
+# Helm chart definition for Tailscale Operator configuration.
+# This chart uses the official Tailscale operator as a dependency.
+apiVersion: v2
+name: tailscale-config
+version: 1.0.0
+dependencies:
+  - name: tailscale-operator
+    version: 1.94.2
+    repository: https://pkgs.tailscale.com/helmcharts

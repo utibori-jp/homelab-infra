@@ -1,0 +1,22 @@
+# Tailscale Operator Configuration
+# For more info: https://github.com/tailscale/tailscale/blob/main/cmd/k8s-operator/deploy/chart/values.yaml
+
+# Configuration for the Tailscale operator dependency.
+tailscale-operator:
+  # OAuth credentials are required for the operator to manage your tailnet.
+  # You can generate these in the Tailscale admin console under Settings > OAuth.
+  # Required scopes: "devices:write" and "devices:read".
+  oauth:
+    clientId: "<PLACEHOLDER_CLIENT_ID>"
+    clientSecret: "<PLACEHOLDER_CLIENT_SECRET>"
+
+  # Set tags for the operator's tailscale nodes.
+  # operatorConfig:
+  #   defaultTags:
+  #     - tag:k8s-operator
+
+  # If you want to use a specific Tailscale version for proxies created by the operator.
+  # proxyConfig:
+  #   image:
+  #     repository: tailscale/tailscale
+  #     tag: v1.94.2
