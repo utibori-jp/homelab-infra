@@ -1,3 +1,4 @@
+# Terraform
 **/.terraform/
 
 *.tfstate
@@ -9,6 +10,13 @@
 crash.log
 crash.*.log
 
+# Helm dependencies
+charts/
+*.tgz
+*.lock
+!Chart.lock
+
+# Global
 .DS_Store
 .vscode/
 .idea/
