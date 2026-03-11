@@ -7,13 +7,12 @@ tailscale-operator:
   # You can generate these in the Tailscale admin console under Settings > OAuth.
   # Required scopes: "devices:write" and "devices:read".
   oauth:
-    clientId: "<PLACEHOLDER_CLIENT_ID>"
-    clientSecret: "<PLACEHOLDER_CLIENT_SECRET>"
+    existingSecret: "tailscale-oauth-secret"
 
   # Set tags for the operator's tailscale nodes.
-  # operatorConfig:
-  #   defaultTags:
-  #     - tag:k8s-operator
+  operatorConfig:
+    defaultTags:
+      - "tag:k8s-operator"
 
   # If you want to use a specific Tailscale version for proxies created by the operator.
   # proxyConfig:
