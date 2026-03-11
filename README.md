@@ -1,3 +1,6 @@
+# reccomend to generate new ssh-key for this project
+ssh-keygen -t ed25519 -C "homelab" -f ~/.ssh/id_ed25519
+
 ## SSH Access
 
 The Kubernetes nodes utilize a private network (`10.10.0.0/24`) and are not directly accessible from the outside. To access them, you must use the Proxmox host (`pve`) as a **Jump Host (Bastion)**.
@@ -53,3 +56,74 @@ ssh master     # Access Control Plane
 ssh worker1    # Access Worker Node 1
 ssh worker2    # Access Worker Node 2
 ```
+
+## Kubernetes Access
+
+This guide explains how to access the Kubernetes cluster (K3s) from your local machine using `kubectl`.
+
+### 1. Prerequisites
+
+Ensure `kubectl` is installed on your local machine.
+- [Install Tools | Kubernetes](https://kubernetes.io/docs/tasks/tools/)
+
+### 2. Setup Kubeconfig
+
+Download the kubeconfig file from the master node to your local machine.
+*Note: This command will overwrite your existing `~/.kube/config`.*
+
+```bash
+# Create the directory if it doesn't exist
+mkdir -p ~/.kube
+
+# Fetch the config from the master node
+ssh master "sudo cat /etc/rancher/k3s/k3s.yaml" > ~/.kube/config
+```
+
+### 3. Establish SSH Tunnel
+
+Since the API server is running on a private network(`10.10.0.11`), you must establish an SSH tunnel to access it securely.
+
+Open a terminal and run the following command. Keep this window open while working with cluster.
+
+```bash
+ssh -L 6443:localhost:6443 master
+```
+
+### Verification
+
+in a separate terminal window, verify the connection:
+```bash
+kubectl get nodes
+```
+
+## Argo CD Access
+
+The Argo CD portal is exposed via a MetalLB LoadBalancer on the private subnet (`10.10.0.0/24`).
+
+### 1. Identify the External IP
+
+Run the following command to find the assigned IP address (it will be in the range `10.10.0.224/27`):
+
+```bash
+kubectl get svc -n argocd argo-cd-server
+```
+
+### 2. Access the Portal
+
+Navigate to `http://<EXTERNAL-IP>` in your browser.
+
+*Note: Since the LoadBalancer IP is on the private subnet, you must be connected to the cluster network via Tailscale (using the subnet router) or have a direct route to `10.10.0.0/24`.*
+
+### 3. Login Credentials
+
+- **Username:** `admin`
+- **Initial Password:** Retrieve the password using this command:
+
+```bash
+# macOS/Linux
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+
+# Windows (PowerShell)
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
+```
+
