@@ -7,7 +7,7 @@ tailscale-operator:
   # You can generate these in the Tailscale admin console under Settings > OAuth.
   # Required scopes: "devices:write" and "devices:read".
   oauth:
-    existingSecret: "tailscale-oauth-secret"
+    existingSecret: "operator-oauth"
 
   # Set tags for the operator's tailscale nodes.
   operatorConfig:
