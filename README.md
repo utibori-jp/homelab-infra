@@ -98,23 +98,30 @@ kubectl get nodes
 
 ## Argo CD Access
 
-The Argo CD portal is exposed via a MetalLB LoadBalancer on the private subnet (`10.10.0.0/24`).
+The Argo CD portal can be accessed securely using a port forward.
 
-### 1. Identify the External IP
+### 1. Prerequisite: API Tunnel
 
-Run the following command to find the assigned IP address (it will be in the range `10.10.0.224/27`):
+Ensure you have established the SSH tunnel to the Kubernetes API server (as described in the "Kubernetes Access" section):
 
 ```bash
-kubectl get svc -n argocd argo-cd-server
+ssh -L 6443:localhost:6443 master
 ```
 
-### 2. Access the Portal
+### 2. Port Forward Argo CD Server
 
-Navigate to `http://<EXTERNAL-IP>` in your browser.
+In a new terminal window, establish a port forward to the Argo CD server service:
 
-*Note: Since the LoadBalancer IP is on the private subnet, you must be connected to the cluster network via Tailscale (using the subnet router) or have a direct route to `10.10.0.0/24`.*
+```bash
+kubectl port-forward svc/argo-cd-argocd-server -n argocd 8080:443
+```
 
-### 3. Login Credentials
+### 3. Access the Portal
+
+Open your browser and navigate to:
+[https://localhost:8080/](https://localhost:8080/)
+
+### 4. Login Credentials
 
 - **Username:** `admin`
 - **Initial Password:** Retrieve the password using this command:
@@ -126,4 +133,3 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 # Windows (PowerShell)
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
 ```
-
