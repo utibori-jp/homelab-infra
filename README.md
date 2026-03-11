@@ -59,12 +59,13 @@ ssh worker2    # Access Worker Node 2
 
 ## Kubernetes Access
 
-This guide explains how to access the Kubernetes cluster (K3s) from your local machine using `kubectl`.
+This guide explains how to access the Kubernetes cluster (K3s) from your local machine using `kubectl`. There are two ways to connect: **via Tailscale (Standard)** and **via SSH Tunnel (Emergency/Initial Setup)**.
 
 ### 1. Prerequisites
 
 Ensure `kubectl` is installed on your local machine.
-- [Install Tools | Kubernetes](https://kubernetes.io/docs/tasks/tools/)
+
+* [Install Tools | Kubernetes](https://kubernetes.io/docs/tasks/tools/)
 
 ### 2. Setup Kubeconfig
 
@@ -77,54 +78,86 @@ mkdir -p ~/.kube
 
 # Fetch the config from the master node
 ssh master "sudo cat /etc/rancher/k3s/k3s.yaml" > ~/.kube/config
+
+# Fix permissions (macOS/Linux only)
+chmod 600 ~/.kube/config
+
 ```
 
-### 3. Establish SSH Tunnel
+### 3. Choose Your Access Method
 
-Since the API server is running on a private network(`10.10.0.11`), you must establish an SSH tunnel to access it securely.
+#### Method A: Tailscale Access (Recommended for Daily Use)
 
-Open a terminal and run the following command. Keep this window open while working with cluster.
+If the Tailscale Operator is running and you are connected to Tailnet, you can access the API server directly without any SSH tunnels.
 
-```bash
-ssh -L 6443:localhost:6443 master
+1. **Edit your `~/.kube/config`**:
+Change the `server` address to the master node's private IP (`10.10.0.11`).
+```yaml
+clusters:
+- cluster:
+    server: https://10.10.0.11:6443  # Update this line
+
 ```
 
-### Verification
 
-in a separate terminal window, verify the connection:
+2. **Verify**:
 ```bash
 kubectl get nodes
+
+```
+
+
+
+#### Method B: SSH Tunnel (Emergency / Initial Setup)
+
+Use this method if Tailscale is not yet configured or is down.
+
+1. **Edit your `~/.kube/config`**:
+Ensure the `server` address points to `localhost`.
+```yaml
+clusters:
+- cluster:
+    server: https://localhost:6443
+
+```
+
+2. **Establish SSH Tunnel**:
+Keep this terminal window open.
+```bash
+ssh -L 6443:localhost:6443 master
+
+```
+
+3. **Verify**:
+In a separate terminal:
+```bash
+kubectl get nodes
+
 ```
 
 ## Argo CD Access
 
 The Argo CD portal can be accessed securely using a port forward.
 
-### 1. Prerequisite: API Tunnel
+### 1. Port Forward Argo CD Server
 
-Ensure you have established the SSH tunnel to the Kubernetes API server (as described in the "Kubernetes Access" section):
-
-```bash
-ssh -L 6443:localhost:6443 master
-```
-
-### 2. Port Forward Argo CD Server
-
-In a new terminal window, establish a port forward to the Argo CD server service:
+You can run this directly if you are connected via Tailscale (Method A) or while the SSH tunnel (Method B) is active.
 
 ```bash
 kubectl port-forward svc/argo-cd-argocd-server -n argocd 8080:443
+
 ```
 
-### 3. Access the Portal
+### 2. Access the Portal
 
 Open your browser and navigate to:
-[https://localhost:8080/](https://localhost:8080/)
+[https://localhost:8080/](https://www.google.com/search?q=https://localhost:8080/)
+*(Note: You may see a certificate warning; this is expected for the default self-signed certificate.)*
 
-### 4. Login Credentials
+### 3. Login Credentials
 
-- **Username:** `admin`
-- **Initial Password:** Retrieve the password using this command:
+* **Username:** `admin`
+* **Initial Password:** Retrieve the password using this command:
 
 ```bash
 # macOS/Linux
@@ -132,4 +165,5 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 
 # Windows (PowerShell)
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
+
 ```
