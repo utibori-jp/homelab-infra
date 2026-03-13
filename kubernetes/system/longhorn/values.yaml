@@ -1,7 +1,10 @@
 longhorn:
   service:
     ui:
+      # Expose Longhorn UI via Tailscale Operator.
+      # This creates a Tailscale node in your tailnet that routes directly to the service.
       type: LoadBalancer
+      loadBalancerClass: tailscale
   persistence:
     defaultClassReplicaCount: 2 
   preUpgradeChecker:
