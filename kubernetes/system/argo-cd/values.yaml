@@ -4,9 +4,7 @@ argo-cd:
       # Expose Argo CD Server via Tailscale Operator.
       # This creates a Tailscale node in your tailnet that routes directly to the service.
       type: LoadBalancer
-      loadBalancerClass: tailscale.com/remote
-      annotations:
-        tailscale.com/expose: "true"
+      loadBalancerClass: tailscale
     extraArgs:
       # --insecure is required when SSL termination is handled by an external provider 
       # (like Tailscale or an Ingress controller) or for simplified local access.
