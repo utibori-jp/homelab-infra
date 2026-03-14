@@ -121,6 +121,10 @@ spec:
             # or the IP assigned by Tailscale.
             - name: VIKUNJA_SERVICE_PUBLICURL
               value: "http://vikunja.tail078c12.ts.net" 
+            - name: GOLANG_TOUCH_CACHE
+              value: "/tmp/cache"
+            - name: VIKUNJA_CACHE_ENABLED
+              value: "true"
           ports:
             - containerPort: 3456
 ---
