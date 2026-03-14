@@ -118,7 +118,7 @@ spec:
             # The Public URL should be your Tailscale MagicDNS name if enabled, 
             # or the IP assigned by Tailscale.
             - name: VIKUNJA_SERVICE_PUBLICURL
-              value: "http://vikunja" 
+              value: "http://vikunja.tail078c12.ts.net" 
           ports:
             - containerPort: 3456
 ---
