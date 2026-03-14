@@ -137,6 +137,7 @@ spec:
   # Using LoadBalancer type with Tailscale Operator automatically 
   # creates a node in your Tailnet.
   type: LoadBalancer
+  loadBalancerClass: tailscale
   ports:
     - port: 80
       targetPort: 3456
