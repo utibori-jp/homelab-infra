@@ -94,7 +94,7 @@ spec:
         app: vikunja
     spec:
       securityContext:
-          fsGroup: 1000
+        fsGroup: 1000
       containers:
         - name: vikunja
           image: vikunja/vikunja:latest
@@ -125,8 +125,18 @@ spec:
               value: "/tmp/cache"
             - name: VIKUNJA_CACHE_ENABLED
               value: "true"
+          volumeMounts:
+          - name: cache-volume
+            mountPath: /.cache
+          - name: files-volume
+            mountPath: /app/vikunja/files
           ports:
             - containerPort: 3456
+      volumes:
+      - name: cache-volume
+        emptyDir: {}
+      - name: files-volume
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
