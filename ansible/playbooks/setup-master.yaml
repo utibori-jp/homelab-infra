@@ -1,0 +1,9 @@
+---
+- name: Setup tools on control plane
+  hosts: master
+  become: true
+  tasks:
+    - name: Install Helm
+      shell: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      args:
+        creates: /usr/local/bin/helm

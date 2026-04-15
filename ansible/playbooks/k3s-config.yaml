@@ -1,0 +1,42 @@
+---
+- name: Apply k3s config on control plane
+  hosts: master
+  become: true
+  tasks:
+    - name: Ensure /etc/rancher/k3s directory exists
+      file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: "0755"
+
+    - name: Write k3s config
+      copy:
+        dest: /etc/rancher/k3s/config.yaml
+        content: |
+          disable:
+            - servicelb
+        mode: "0644"
+      register: k3s_config
+
+    - name: Restart k3s if config changed
+      systemd:
+        name: k3s
+        state: restarted
+      when: k3s_config.changed
+
+    - name: Wait for k3s to be ready
+      command: kubectl get nodes
+      register: nodes_ready
+      retries: 10
+      delay: 10
+      until: nodes_ready.rc == 0
+      changed_when: false
+
+    - name: Verify svclb pods are gone
+      command: kubectl get pods -n kube-system -l app=svclb
+      register: svclb_pods
+      changed_when: false
+
+    - name: Show svclb pod status
+      debug:
+        msg: "{{ svclb_pods.stdout | default('(no svclb pods found - OK)') }}"
