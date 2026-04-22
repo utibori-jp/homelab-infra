@@ -1,169 +1,94 @@
-# reccomend to generate new ssh-key for this project
-ssh-keygen -t ed25519 -C "homelab" -f ~/.ssh/id_ed25519
+# homelab-infra
 
-## SSH Access
+Infrastructure-layer repository for a Proxmox + k3s homelab managed with GitOps (Argo CD). This repo provisions the VMs, configures the k3s nodes, and bootstraps the in-cluster controllers (Argo CD, Tailscale operator). Applications running on top of the cluster are managed in a separate repository.
 
-The Kubernetes nodes utilize a private network (`10.10.0.0/24`) and are not directly accessible from the outside. To access them, you must use the Proxmox host (`pve`) as a **Jump Host (Bastion)**.
+## Architecture
 
-### 1. Prerequisite: Copy SSH Key to Proxmox
+Two-repository GitOps layout:
 
-To enable password-less jumping, register your public key with the Proxmox host:
+| Repository | Visibility | Scope |
+|---|---|---|
+| `homelab-infra` (this repo) | private | Terraform, Ansible, Argo CD bootstrap, Tailscale operator |
+| [`homelab-services`](https://github.com/utibori-jp/homelab-services) | public | Application layer (App-of-Apps pattern), self-authored Helm charts |
+
+Argo CD self-manages from `kubernetes/system/argo-cd`. Once bootstrapped, the `root` Application in `homelab-services` takes over application deployments.
+
+## Directory Layout
+
+```
+homelab-infra/
+├── terraform/            # Proxmox VE VM provisioning (k3s node VMs)
+├── ansible/              # Node configuration (k3s config, Helm, Longhorn prerequisites)
+└── kubernetes/
+    ├── bootstrap/        # Argo CD Application manifests (argo-cd, tailscale-operator)
+    └── system/           # Helm charts referenced by the bootstrap Applications
+        ├── argo-cd/
+        └── tailscale/
+```
+
+Sub-directory documentation:
+- [ansible/README.md](./ansible/README.md)
+- [kubernetes/README.md](./kubernetes/README.md)
+
+## Cluster
+
+- k3s v1.34.3+k3s3
+- 3 nodes: `home-lab-1` (control-plane), `home-lab-2`, `home-lab-3` (workers)
+- VM network: `10.10.0.0/24` on Proxmox
+- Access: Tailscale (tailnet `tail078c12.ts.net`)
+- Tailscale HTTPS certificates: enabled
+- Argo CD: v3.3.0
+
+## Bootstrap Flow
+
+1. Provision node VMs with Terraform (`terraform/`).
+2. Install k3s on each node (currently manual; not yet Ansible-managed).
+3. Apply node-level configuration with Ansible (`ansible/`).
+4. Install Argo CD from the local chart:
+   ```bash
+   sudo -E KUBECONFIG=/etc/rancher/k3s/k3s.yaml \
+     helm install argocd kubernetes/system/argo-cd \
+     --namespace argocd --create-namespace
+   ```
+5. Hand over control to Argo CD (self-management) and sync the Tailscale operator:
+   ```bash
+   sudo kubectl apply -f kubernetes/bootstrap/argo-cd.yaml
+   sudo kubectl apply -f kubernetes/bootstrap/tailscale.yaml
+   ```
+6. Apply the `root` Application from the `homelab-services` repo to deploy the application layer.
+
+## Accessing the Cluster
+
+All access goes through Tailscale. Connect to the tailnet first.
+
+### SSH
 
 ```bash
-# Replace ~/.ssh/id_ed25519.pub with your actual public key path
-ssh-copy-id -i ~/.ssh/id_ed25519.pub root@192.168.0.100
+ssh ubuntu@home-lab-1
 ```
 
-### 2. Configure Local SSH Config
+### kubectl / helm on the control-plane
 
-Add the following configuration to your local ~/.ssh/config file. This allows you to SSH directly into the nodes by names, automatically routing through the jump host.
-
-```
-# --- Proxmox Jump Host ---
-Host pve
-    HostName 192.168.0.100
-    User root
-    IdentityFile ~/.ssh/id_ed25519
-    ForwardAgent yes
-
-# --- Kubernetes Control Plane ---
-Host master
-    HostName 10.10.0.11
-    User ubuntu
-    ProxyJump pve
-    IdentityFile ~/.ssh/id_ed25519
-
-# --- Kubernetes Worker Nodes ---
-Host worker1
-    HostName 10.10.0.12
-    User ubuntu
-    ProxyJump pve
-    IdentityFile ~/.ssh/id_ed25519
-
-Host worker2
-    HostName 10.10.0.13
-    User ubuntu
-    ProxyJump pve
-    IdentityFile ~/.ssh/id_ed25519
-```
-
-### 3. Usage
-
-Once configured, you can access the nodes using their short names:
+`kubectl` picks up `/etc/rancher/k3s/k3s.yaml` automatically via `sudo`; `helm` needs it set explicitly.
 
 ```bash
-ssh master     # Access Control Plane
-ssh worker1    # Access Worker Node 1
-ssh worker2    # Access Worker Node 2
+sudo kubectl get nodes
+sudo -E KUBECONFIG=/etc/rancher/k3s/k3s.yaml helm list -A
 ```
 
-## Kubernetes Access
+### Web UIs
 
-This guide explains how to access the Kubernetes cluster (K3s) from your local machine using `kubectl`. There are two ways to connect: **via Tailscale (Standard)** and **via SSH Tunnel (Emergency/Initial Setup)**.
+Ingresses are provisioned by the Tailscale operator (see `homelab-services/charts/tailscale-ingresses`):
 
-### 1. Prerequisites
+| Service | URL |
+|---|---|
+| Argo CD | https://argocd.tail078c12.ts.net |
+| Longhorn | https://longhorn.tail078c12.ts.net |
+| Vikunja | https://vikunja.tail078c12.ts.net |
 
-Ensure `kubectl` is installed on your local machine.
-
-* [Install Tools | Kubernetes](https://kubernetes.io/docs/tasks/tools/)
-
-### 2. Setup Kubeconfig
-
-Download the kubeconfig file from the master node to your local machine.
-*Note: This command will overwrite your existing `~/.kube/config`.*
+### Argo CD initial password
 
 ```bash
-# Create the directory if it doesn't exist
-mkdir -p ~/.kube
-
-# Fetch the config from the master node
-ssh master "sudo cat /etc/rancher/k3s/k3s.yaml" > ~/.kube/config
-
-# Fix permissions (macOS/Linux only)
-chmod 600 ~/.kube/config
-
-```
-
-### 3. Choose Your Access Method
-
-#### Method A: Tailscale Access (Recommended for Daily Use)
-
-If the Tailscale Operator is running and you are connected to Tailnet, you can access the API server directly without any SSH tunnels.
-
-1. **Edit your `~/.kube/config`**:
-Change the `server` address to the master node's private IP (`10.10.0.11`).
-```yaml
-clusters:
-- cluster:
-    server: https://10.10.0.11:6443  # Update this line
-
-```
-
-
-2. **Verify**:
-```bash
-kubectl get nodes
-
-```
-
-
-
-#### Method B: SSH Tunnel (Emergency / Initial Setup)
-
-Use this method if Tailscale is not yet configured or is down.
-
-1. **Edit your `~/.kube/config`**:
-Ensure the `server` address points to `localhost`.
-```yaml
-clusters:
-- cluster:
-    server: https://localhost:6443
-
-```
-
-2. **Establish SSH Tunnel**:
-Keep this terminal window open.
-```bash
-ssh -L 6443:localhost:6443 master
-
-```
-
-3. **Verify**:
-In a separate terminal:
-```bash
-kubectl get nodes
-
-```
-
-## Argo CD Access
-
-The Argo CD portal can be accessed securely using a port forward.
-
-### 1. Port Forward Argo CD Server
-
-You can run this directly if you are connected via Tailscale (Method A) or while the SSH tunnel (Method B) is active.
-
-```bash
-kubectl port-forward svc/argo-cd-argocd-server -n argocd 8080:443
-
-```
-
-### 2. Access the Portal
-
-Open your browser and navigate to:
-[https://localhost:8080/](https://www.google.com/search?q=https://localhost:8080/)
-*(Note: You may see a certificate warning; this is expected for the default self-signed certificate.)*
-
-### 3. Login Credentials
-
-* **Username:** `admin`
-* **Initial Password:** Retrieve the password using this command:
-
-```bash
-# macOS/Linux
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-
-# Windows (PowerShell)
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
-
+sudo kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d
 ```
