@@ -1,28 +1,28 @@
 # Ansible
 
-k3sクラスタのノード設定を管理する。
+Manages configuration of the k3s cluster nodes.
 
-## 実行環境
+## Runtime Environment
 
-**Windowsの場合はWSL上から実行すること。** WindowsネイティブのPython/AnsibleではSSH configの `~` 展開やProxyJumpが正しく動作しない。
+**On Windows, run this from WSL.** Native Windows Python/Ansible does not expand `~` in the SSH config correctly and does not handle `ProxyJump` properly.
 
-## 実行方法
+## Usage
 
 ```bash
-# 疎通確認
+# Connectivity check
 ansible all -m ping
 
-# k3s設定の適用
+# Apply k3s configuration
 ansible-playbook playbooks/k3s-config.yaml
 ```
 
-## スコープ
+## Scope
 
-現時点ではk3sノードの初期セットアップ（OSインストール、k3sインストール等）はAnsible管理外で手動で実施している。今後追加予定。
+Initial node setup (OS install, k3s install, etc.) is currently done manually and is not yet covered by Ansible. To be added later.
 
-## Playbook一覧
+## Playbooks
 
-| ファイル | 内容 |
+| File | Purpose |
 |---|---|
-| `playbooks/k3s-config.yaml` | control planeの `/etc/rancher/k3s/config.yaml` を管理（ServiceLB無効化など） |
-| `playbooks/setup-master.yaml` | control planeのツール類をインストール（Helm等） |
+| `playbooks/k3s-config.yaml` | Manages `/etc/rancher/k3s/config.yaml` on the control-plane (disables ServiceLB, etc.) |
+| `playbooks/setup-master.yaml` | Installs tooling on the control-plane (Helm, etc.) |
