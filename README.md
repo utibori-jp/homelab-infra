@@ -63,9 +63,20 @@ All access goes through Tailscale. Connect to the tailnet first.
 
 ### SSH
 
-```bash
-ssh ubuntu@home-lab-1
+The nodes do not run Tailscale, so SSH jumps through pve.
+
 ```
+# ~/.ssh/config
+Host pve
+  User root
+
+Host master
+  HostName 10.10.0.11
+  User ubuntu
+  ProxyJump pve
+```
+
+Keep Tailscale on pve, with `--accept-dns=false`. It is the way in when the cluster is down.
 
 ### kubectl / helm on the control-plane
 
