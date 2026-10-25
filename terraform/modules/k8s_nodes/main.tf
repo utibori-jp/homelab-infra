@@ -58,6 +58,12 @@ resource "proxmox_virtual_environment_vm" "k8s_nodes" {
       }
     }
 
+    # DNS (left empty, the VMs inherit pve's MagicDNS, which pods cannot reach)
+    dns {
+      domain  = var.dns_domain
+      servers = var.dns_servers
+    }
+
     # User & Auth
     user_account {
       keys = [var.ssh_public_key]

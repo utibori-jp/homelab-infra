@@ -87,6 +87,18 @@ variable "gateway" {
   default     = "10.10.0.1"
 }
 
+variable "dns_servers" {
+  description = "DNS servers set on the VMs via Cloud-Init. Must be reachable from pods."
+  type        = list(string)
+  default     = ["192.168.0.1", "8.8.8.8"]
+}
+
+variable "dns_domain" {
+  description = "DNS search domain set on the VMs via Cloud-Init."
+  type        = string
+  default     = "home"
+}
+
 ################################################################################
 # Authentication
 ################################################################################
