@@ -26,3 +26,4 @@ Initial node setup (OS install, k3s install, etc.) is currently done manually an
 |---|---|
 | `playbooks/k3s-config.yaml` | Manages `/etc/rancher/k3s/config.yaml` on the control-plane (disables ServiceLB, etc.) |
 | `playbooks/setup-master.yaml` | Installs tooling on the control-plane (Helm, etc.) |
+| `playbooks/adguard.yaml` | Installs AdGuard Home on the adguard LXC. Initial setup is done in its web wizard |

@@ -1,0 +1,32 @@
+---
+# Installs the binary and the systemd unit only. Admin account, upstreams and
+# blocklists are set in the first-run wizard at http://<ip>:3000.
+- name: Set up AdGuard Home
+  hosts: adguard
+  become: true
+  vars:
+    adguard_version: v0.107.79
+    adguard_dir: /opt/AdGuardHome
+  tasks:
+    - name: Install prerequisites
+      apt:
+        name: [curl, ca-certificates]
+        update_cache: true
+
+    - name: Download AdGuard Home
+      get_url:
+        url: "https://github.com/AdguardTeam/AdGuardHome/releases/download/{{ adguard_version }}/AdGuardHome_linux_amd64.tar.gz"
+        dest: /tmp/AdGuardHome_linux_amd64.tar.gz
+        mode: "0644"
+
+    - name: Extract AdGuard Home
+      unarchive:
+        src: /tmp/AdGuardHome_linux_amd64.tar.gz
+        dest: /opt
+        remote_src: true
+        creates: "{{ adguard_dir }}/AdGuardHome"
+
+    - name: Install the systemd service
+      command: "{{ adguard_dir }}/AdGuardHome -s install"
+      args:
+        creates: /etc/systemd/system/AdGuardHome.service
